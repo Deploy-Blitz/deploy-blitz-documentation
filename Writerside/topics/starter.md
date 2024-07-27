@@ -7,23 +7,48 @@ You can use it as a sandbox to play with Writerside features, and remove it from
 
 ```mermaid
 sequenceDiagram
-    Create Deploy -->> Create Webhook: set webhook name
-    Create Webhook -->> Upload Script: Verify integrity file sh/yaml
-    Upload Script -->> Database: store sh/yaml script
-    Database -->> Create Webhook: OK
-    Create Webhook -->> Create Deploy: localhost:8080/webhook/{name}
+    Deployment Manager -->> Webhook Service: set webhook name
+    Webhook Service -->> Git Service: Git pull/clone
+    Git Service -->> Script Locator: search path for script
+    Script Locator -->> Script Verifier: Verify integrity of sh/yaml
+    Script Verifier -->> Database: store sh/yaml script
+    Database -->> Runtime Engine: script as string
+    Runtime Engine -->> Webhook Service: ws://Daemon Run Job Logs
+    Webhook Service -->> Deployment Manager: localhost:8080/webhook/{name}
 ```
+
+- [X] Create Deploy
+- [x] Create Webool
+- [x] Git with Token git clone `https://<username>:${GITHUB_TOKEN}@github.com/username/repository.git`
 
 ```plantuml
 @startmindmap
-* create deploy
-    * set name
-        * new name
-            * valid script
-                * store in database
-                * error
-        * error
+* Deployment Manager
+    * set webhook name
+        * Webhook Service
+            * error
+            * Git pull/clone
+                * Git Service
+                    * error
+                    * search path for script
+                        * Script Locator
+                            * error
+                            * Verify integrity of sh/yaml
+                                * Script Verifier
+                                    * error
+                                    * store sh/yaml script
+                                        * Database
+                                            * error
+                                            * script as string
+                                                * Runtime Engine
+                                                    * error
+                                                    * ws://Daemon Run Job Logs
+                                                        * Webhook Service
+                                                            * error
+                                                            * localhost:8080/webhook/{name}
+                                                                * Deployment Manager
 @endmindmap
+
 ```
 ### Database Structure
 
@@ -33,10 +58,10 @@ sequenceDiagram
 class deploy {
     id : INTEGER
     ..
-    app_name: VARCHAR
+    app_name: VARCHAR(255)
     version: INTEGER
     status: BOOLEAN DEFAULT TRUE
-    endpoint_path: VARCHAR(10)
+    endpoint_path: VARCHAR(255)
     script: TEXT
     creation_date: DATETIME
     updated_date: DATETIME
@@ -51,14 +76,17 @@ class deploy_history {
     id : INTEGER
     ..
     deploy_id : INTEGER
-    endpoint_path: VARCHAR(10)
+    endpoint_path: VARCHAR(255)
     script: TEXT
+    creation_date: DATETIME
+    updated_date: DATETIME
     .. UNIQUE ..
     
     deploy_id
     
 }
 
-deploy -right->deploy_history
-@enduml 
+deploy -right-> deploy_history : "deploy_id"
+@enduml
+
 ```
